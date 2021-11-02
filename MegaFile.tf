@@ -155,7 +155,7 @@ resource "aws_ecs_cluster" "ECS_cluster" {
 }
 
 resource "aws_ecs_task_definition" "task_definition" {
-  family                = "worker"
+  family = "worker"
   container_definitions = jsonencode(
     [
       {
@@ -164,9 +164,20 @@ resource "aws_ecs_task_definition" "task_definition" {
         name: "worker",
         cpu: 2,
         image: "https://hub.docker.com/r/ubuntu/apache2:latest",
-        environment: []
-      }
-    ])
+        environment: [],
+      },
+
+//      logConfiguration [{
+//        // https://aws.amazon.com/blogs/compute/centralized-container-logs-with-amazon-ecs-and-amazon-cloudwatch-logs/
+//        logDriver: "awslogs",
+//        options: {
+//          awslogs-group: "awslogs-test",
+//          awslogs-region: "us-west-2",
+//          awslogs-stream-prefix: "ecs"
+//        }
+//      }]
+    ]
+  )
 }
 
 resource "aws_ecs_service" "main" {
@@ -191,6 +202,28 @@ resource "aws_ecs_service" "main" {
     Environment = "staging"
     Application = "webApp"
   }
+}
+
+resource "aws_efs_file_system" "efsFor" {
+  creation_token = "efs-FOR-ALL"
+
+  tags = {
+    Name = "efs"
+  }
+}
+
+// Connect to EFS with mount points
+resource "aws_efs_mount_target" "main1" {
+  file_system_id = aws_efs_file_system.efsFor.id
+  subnet_id = aws_subnet.privateSubnetAZ1.id
+}
+resource "aws_efs_mount_target" "main2" {
+  file_system_id = aws_efs_file_system.efsFor.id
+  subnet_id = aws_subnet.privateSubnetAZ2.id
+}
+resource "aws_efs_mount_target" "main3" {
+  file_system_id = aws_efs_file_system.efsFor.id
+  subnet_id = aws_subnet.privateSubnetAZ3.id
 }
 
 // ---- LAST PLAN TEST ABOVE ---
