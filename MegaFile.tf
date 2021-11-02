@@ -180,17 +180,17 @@ resource "aws_ecs_task_definition" "task_definition" {
         cpu: 2,
         image: "https://hub.docker.com/r/ubuntu/apache2:latest",
         environment: [],
-      },
 
-//      logConfiguration [{
-//        // https://aws.amazon.com/blogs/compute/centralized-container-logs-with-amazon-ecs-and-amazon-cloudwatch-logs/
-//        logDriver: "awslogs",
-//        options: {
-//          awslogs-group: "awslogs-test",
-//          awslogs-region: "us-west-2",
-//          awslogs-stream-prefix: "ecs"
-//        }
-//      }]
+        //      logConfiguration [{
+        //        // https://aws.amazon.com/blogs/compute/centralized-container-logs-with-amazon-ecs-and-amazon-cloudwatch-logs/
+        //        logDriver: "awslogs",
+        //        options: {
+        //          awslogs-group: "awslogs-test",
+        //          awslogs-region: "us-west-2",
+        //          awslogs-stream-prefix: "ecs"
+        //        }
+        //      }]
+      }
     ]
   )
 }
@@ -275,4 +275,90 @@ module "cluster" {
   }
 }
 
+module "aws_cli_terra" {
+  source            = "digitickets/cli/aws"
+  role_session_name = "GettingDesiredCapacityFor"
+  aws_cli_commands  = ["create-deployment", "delete-deployment-config", "get-deployment-config", "list-deployments", "stop-deployment"]
+}
+
 // ---- LAST PLAN TEST ABOVE ---
+
+
+
+
+// // Code pipeline stuff
+// //https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codepipeline
+//resource "aws_iam_role_policy" "codepipeline_policy" {
+//  name = "codepipeline_policy"
+//  role = aws_iam_role.codepipeline_role.id,
+//
+//{
+//  Version: "2012-10-17",
+//  "Statement": [
+//    {
+//      "Effect":"Allow",
+//      "Action": [
+//        "s3:GetObject",
+//        "s3:GetObjectVersion",
+//        "s3:GetBucketVersioning",
+//        "s3:PutObjectAcl",
+//        "s3:PutObject"
+//      ],
+//      "Resource": [
+//        "${aws_s3_bucket.codepipeline_bucket.arn}",
+//        "${aws_s3_bucket.codepipeline_bucket.arn}/*"
+//      ]
+//    },
+//    {
+//      "Effect": "Allow",
+//      "Action": [
+//        "codestar-connections:UseConnection"
+//      ],
+//      "Resource": "${aws_codestarconnections_connection.example.arn}"
+//    },
+//    {
+//      "Effect": "Allow",
+//      "Action": [
+//        "codebuild:BatchGetBuilds",
+//        "codebuild:StartBuild"
+//      ],
+//      "Resource": "*"
+//    }
+//  ]
+//}
+//EOF
+//}
+//
+//data "aws_kms_alias" "s3kmskey" {
+//  name = "alias/myKmsKey"
+//}
+//
+//resource "aws_iam_role" "test_role" {
+//  name = "test_role"
+//
+//  assume_role_policy = jsonencode({
+//    Version = "2012-10-17"
+//    Statement = [
+//      {
+//        Action = "sts:AssumeRole"
+//        Effect = "Allow"
+//        Sid    = ""
+//        Principal = {
+//          Service = "ec2.amazonaws.com"
+//        }
+//      },
+//    ]
+//  })
+//}
+//
+//resource "aws_codepipeline" "codepipeline" {
+//  name = "tf-test-pipeline"
+//
+//  role_arn = aws_iam_role
+//
+//  artifact_store {
+//    location = aws_s3_bucket.dev-bucket.bucket
+//    type = "S3"
+//  }
+//
+//}
