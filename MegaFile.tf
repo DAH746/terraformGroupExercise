@@ -241,5 +241,38 @@ resource "aws_efs_mount_target" "main3" {
   subnet_id = aws_subnet.privateSubnetAZ3.id
 }
 
-// ---- LAST PLAN TEST ABOVE ---
+module "cluster" {
+  source  = "terraform-aws-modules/rds-aurora/aws"
 
+  name           = "test-aurora-db-postgres96"
+  engine         = "aurora-postgresql"
+  engine_version = "11.12"
+  instance_class = "db.t2.micro"
+  instances = {
+    one = {}
+    2 = {
+      instance_class = "db.t2.micro"
+    }
+  }
+
+  vpc_id  = aws_vpc.prod-vpc.id
+  subnets = ["aws_subnet.privateSubnetAZ1", "aws_subnet.privateSubnetAZ2", "aws_subnet.privateSubnetAZ3"]
+
+  storage_encrypted   = true
+  apply_immediately   = true
+  monitoring_interval = 10
+
+  db_parameter_group_name         = "default"
+  db_cluster_parameter_group_name = "default"
+
+  engine_mode = "multimaster"
+
+  enabled_cloudwatch_logs_exports = ["postgresql"]
+
+  tags = {
+    Environment = "dev"
+    Terraform   = "true"
+  }
+}
+
+// ---- LAST PLAN TEST ABOVE ---
