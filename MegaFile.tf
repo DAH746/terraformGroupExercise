@@ -93,26 +93,35 @@ resource "aws_security_group" "allow_https" {
       from_port        = 443
       to_port          = 443
       protocol         = "tcp"
-      cidr_blocks      = aws_vpc.prod-vpc.cidr_block
+      cidr_blocks      = [aws_vpc.prod-vpc.cidr_block]
+      ipv6_cidr_blocks = []
+      prefix_list_ids = []
+      security_groups = []
+      self = false
     },
     {
       description      = "HTTP from VPC"
       from_port        = 80
       to_port          = 80
       protocol         = "tcp"
-      cidr_blocks      = aws_vpc.prod-vpc.cidr_block
-
+      cidr_blocks      = [aws_vpc.prod-vpc.cidr_block]
+      ipv6_cidr_blocks = []
+      prefix_list_ids = []
+      security_groups = []
+      self = false
     }
   ]
   egress = [
       {
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
-        cidr_blocks = [
-          "0.0.0.0/0"]
-        ipv6_cidr_blocks = [
-          ":"]
+      description  = "Allowed in"
+      from_port = 0
+      to_port = 0
+      protocol = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+      ipv6_cidr_blocks = ["::/0"]
+      prefix_list_ids = []
+      security_groups = []
+      self = false
       }
   ]
 
@@ -154,7 +163,7 @@ resource "aws_ecs_task_definition" "task_definition" {
         memory: 512,
         name: "worker",
         cpu: 2,
-        image: "${REPOSITORY_URL}:latest",
+        image: "https://hub.docker.com/r/ubuntu/apache2:latest",
         environment: []
       }
     ])
@@ -163,7 +172,7 @@ resource "aws_ecs_task_definition" "task_definition" {
 resource "aws_ecs_service" "main" {
   name            = "staging"
   cluster         = aws_ecs_cluster.ECS_cluster.id
-  task_definition = aws_ecs_task_definition.task_definition
+  task_definition = aws_ecs_task_definition.task_definition.container_definitions
   desired_count   = 1
   launch_type     = "FARGATE"
 
@@ -183,3 +192,6 @@ resource "aws_ecs_service" "main" {
     Application = "webApp"
   }
 }
+
+// ---- LAST PLAN TEST ABOVE ---
+
