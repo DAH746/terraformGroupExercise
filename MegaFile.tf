@@ -349,8 +349,6 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
   })
 }
 
-// ---- LAST PLAN TEST ABOVE ---
-
 resource "aws_codepipeline" "codepipeline" {
   name = "tf-test-pipeline"
 
@@ -388,8 +386,8 @@ resource "aws_codepipeline" "codepipeline" {
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
-      input_artifacts  = ["source_output"]
-      output_artifacts = ["build_output"]
+      input_artifacts  = ["source_output"]  // ?
+      output_artifacts = ["build_output"]   // ?
       version          = "1"
 
       configuration = {
@@ -419,3 +417,217 @@ resource "aws_codepipeline" "codepipeline" {
     }
   }
 }
+
+// ---- LAST PLAN TEST ABOVE ---
+
+resource "aws_iam_role" "iam_role_for_codeBuild" {
+  assume_role_policy = jsonencode({
+  Version: "2012-10-17",
+  Statement: [
+    {
+      Effect: "Allow",
+      Principal: {
+        Service: "codebuild.amazonaws.com"
+      },
+      Action: "sts:AssumeRole"
+    }
+  ]
+  }
+  )
+}
+
+resource "aws_codebuild_project" "codeBuilder" {
+  name          = "test-project"
+  description   = "test_codebuild_project"
+  build_timeout = "5"
+  service_role  = aws_iam_role.iam_role_for_codeBuild.arn
+
+  artifacts {
+    type = "NO_ARTIFACTS"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/standard:1.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+
+    environment_variable {
+      name  = "SOME_KEY1"
+      value = "SOME_VALUE1"
+    }
+
+    environment_variable {
+      name  = "SOME_KEY2"
+      value = "SOME_VALUE2"
+      type  = "PARAMETER_STORE"
+    }
+  }
+
+  logs_config {
+    cloudwatch_logs {
+      group_name  = "log-group"
+      stream_name = "log-stream"
+    }
+
+  }
+
+  source {
+    type            = "GITHUB"
+    location        = "https://github.com/mitchellh/packer.git"
+    git_clone_depth = 1
+
+    git_submodules_config {
+      fetch_submodules = true
+    }
+  }
+  source_version = "master"
+
+  tags = {
+    Environment = "codebuild"
+  }
+}
+
+
+//-----------------------------------------------------------
+// FOLLOWING IS NOT FUNCTIONAL:
+//      Attempts were made to provision the following services but could not be achieved.
+//          - CLOUDFRONT
+//          - ROUTE 53
+
+// >> CLOUDFRONT <<
+
+//resource "aws_cloudfront_distribution" "s3_distribution" {
+//  origin {
+//    domain_name = aws_s3_bucket.b.bucket_regional_domain_name
+//    origin_id   = local.s3_origin_id
+//
+//    s3_origin_config {
+//      origin_access_identity = "origin-access-identity/cloudfront/ABCDEFG1234567"
+//    }
+//  }
+//
+//  enabled             = true
+//  is_ipv6_enabled     = true
+//  comment             = "Some comment"
+//  default_root_object = "index.html"
+//
+//  logging_config {
+//    include_cookies = false
+//    bucket          = "mylogs.s3.amazonaws.com"
+//    prefix          = "myprefix"
+//  }
+//
+//  aliases = ["mysite.example.com", "yoursite.example.com"]
+//
+//  default_cache_behavior {
+//    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+//    cached_methods   = ["GET", "HEAD"]
+//    target_origin_id = local.s3_origin_id
+//
+//    forwarded_values {
+//      query_string = false
+//
+//      cookies {
+//        forward = "none"
+//      }
+//    }
+//
+//    viewer_protocol_policy = "allow-all"
+//    min_ttl                = 0
+//    default_ttl            = 3600
+//    max_ttl                = 86400
+//  }
+//
+//  # Cache behavior with precedence 0
+//  ordered_cache_behavior {
+//    path_pattern     = "/content/immutable/*"
+//    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+//    cached_methods   = ["GET", "HEAD", "OPTIONS"]
+//    target_origin_id = local.s3_origin_id
+//
+//    forwarded_values {
+//      query_string = false
+//      headers      = ["Origin"]
+//
+//      cookies {
+//        forward = "none"
+//      }
+//    }
+//
+//    min_ttl                = 0
+//    default_ttl            = 86400
+//    max_ttl                = 31536000
+//    compress               = true
+//    viewer_protocol_policy = "redirect-to-https"
+//  }
+//
+//  # Cache behavior with precedence 1
+//  ordered_cache_behavior {
+//    path_pattern     = "/content/*"
+//    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+//    cached_methods   = ["GET", "HEAD"]
+//    target_origin_id = local.s3_origin_id
+//
+//    forwarded_values {
+//      query_string = false
+//
+//      cookies {
+//        forward = "none"
+//      }
+//    }
+//
+//    min_ttl                = 0
+//    default_ttl            = 3600
+//    max_ttl                = 86400
+//    compress               = true
+//    viewer_protocol_policy = "redirect-to-https"
+//  }
+//
+//  price_class = "PriceClass_200"
+//
+//  restrictions {
+//    geo_restriction {
+//      restriction_type = "whitelist"
+//      locations        = ["US", "CA", "GB", "DE"]
+//    }
+//  }
+//
+//  tags = {
+//    Environment = "production"
+//  }
+//
+//  viewer_certificate {
+//    cloudfront_default_certificate = true
+//  }
+//}
+
+// >> ROUTE 53 <<
+
+//resource "aws_route53_record" "www-dev" {
+//  zone_id = aws_route53_zone.primary.zone_id
+//  name    = "www"
+//  type    = "CNAME"
+//  ttl     = "5"
+//
+//  weighted_routing_policy {
+//    weight = 10
+//  }
+//
+//  set_identifier = "dev"
+//  records        = ["dev.example.com"]
+//}
+//
+//resource "aws_route53_record" "www-live" {
+//  zone_id = aws_route53_zone.primary.zone_id
+//  name    = "www"
+//  type    = "CNAME"
+//  ttl     = "5"
+//
+//  weighted_routing_policy {
+//    weight = 90
+//  }
+//
+//  set_identifier = "live"
+//  records        = ["live.example.com"]
+//}
