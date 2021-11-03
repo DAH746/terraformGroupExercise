@@ -386,8 +386,8 @@ resource "aws_codepipeline" "codepipeline" {
       category         = "Build"
       owner            = "AWS"
       provider         = "CodeBuild"
-      input_artifacts  = ["source_output"]  // ?
-      output_artifacts = ["build_output"]   // ?
+      input_artifacts  = ["source_output"]
+      output_artifacts = ["build_output"]
       version          = "1"
 
       configuration = {
@@ -418,7 +418,35 @@ resource "aws_codepipeline" "codepipeline" {
   }
 }
 
-// ---- LAST PLAN TEST ABOVE ---
+module "codecommit" {
+
+  source = "lgallard/codecommit/aws" // for module
+
+  repository_name = "codecommit-repo"
+  description     = "Git repository in AWS"
+  default_branch  = "master"
+
+
+  triggers = [
+    {
+      name            = "all"
+      events          = ["all"]
+      destination_arn = "arn:aws:lambda:eu-west-2:12345678910:function:lambda-all"
+    },
+    {
+      name            = "updateReference"
+      events          = ["updateReference"]
+      destination_arn = "arn:aws:lambda:eu-west-2:12345678910:function:lambda-updateReference"
+    },
+  ]
+
+  tags = {
+    Owner       = "The georgeContinue team"
+    Environment = "dev"
+    Terraform   = true
+  }
+
+}
 
 resource "aws_iam_role" "iam_role_for_codeBuild" {
   assume_role_policy = jsonencode({
@@ -453,13 +481,13 @@ resource "aws_codebuild_project" "codeBuilder" {
     image_pull_credentials_type = "CODEBUILD"
 
     environment_variable {
-      name  = "SOME_KEY1"
-      value = "SOME_VALUE1"
+      name  = "env_1"
+      value = "value_env_1"
     }
 
     environment_variable {
-      name  = "SOME_KEY2"
-      value = "SOME_VALUE2"
+      name  = "env_2"
+      value = "value_env_2"
       type  = "PARAMETER_STORE"
     }
   }
@@ -487,6 +515,8 @@ resource "aws_codebuild_project" "codeBuilder" {
     Environment = "codebuild"
   }
 }
+
+// ---- LAST PLAN TEST ABOVE ---
 
 
 //-----------------------------------------------------------
