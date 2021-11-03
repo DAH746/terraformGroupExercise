@@ -180,17 +180,18 @@ resource "aws_ecs_task_definition" "task_definition" {
         cpu: 2,
         image: "https://hub.docker.com/r/ubuntu/apache2:latest",
         environment: [],
+        // Test start
+        logConfiguration : {
+          // https://aws.amazon.com/blogs/compute/centralized-container-logs-with-amazon-ecs-and-amazon-cloudwatch-logs/
+          logDriver: "awslogs",
+          options: {
+            awslogs-group: "awslogs",
+            awslogs-region: "eu-west-2",
+            awslogs-stream-prefix: "ecs"
+          }
+        }
+      },
 
-        //      logConfiguration [{
-        //        // https://aws.amazon.com/blogs/compute/centralized-container-logs-with-amazon-ecs-and-amazon-cloudwatch-logs/
-        //        logDriver: "awslogs",
-        //        options: {
-        //          awslogs-group: "awslogs-test",
-        //          awslogs-region: "us-west-2",
-        //          awslogs-stream-prefix: "ecs"
-        //        }
-        //      }]
-      }
     ]
   )
 }
@@ -283,9 +284,6 @@ module "aws_cli_terra" {
 
 // ---- LAST PLAN TEST ABOVE ---
 
-
-
-
 // // Code pipeline stuff
 // //https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codepipeline
 //resource "aws_iam_role_policy" "codepipeline_policy" {
@@ -360,5 +358,7 @@ module "aws_cli_terra" {
 //    location = aws_s3_bucket.dev-bucket.bucket
 //    type = "S3"
 //  }
+//
+//}
 //
 //}
