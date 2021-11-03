@@ -169,6 +169,10 @@ resource "aws_ecs_cluster" "ECS_cluster" {
   name = "tf-ecs-cluster"
 }
 
+resource "aws_cloudwatch_log_group" "ecs_cloudwatch_logger" {
+  name = "ecs_cloudwatch_logger"
+}
+
 resource "aws_ecs_task_definition" "task_definition" {
   family = "worker"
   container_definitions = jsonencode(
@@ -183,15 +187,16 @@ resource "aws_ecs_task_definition" "task_definition" {
         // Test start
         logConfiguration : {
           // https://aws.amazon.com/blogs/compute/centralized-container-logs-with-amazon-ecs-and-amazon-cloudwatch-logs/
+
           logDriver: "awslogs",
           options: {
             awslogs-group: "awslogs",
             awslogs-region: "eu-west-2",
-            awslogs-stream-prefix: "ecs"
+            awslogs-stream-prefix: "ecs",
+            cloud_watch_log_group_name = aws_cloudwatch_log_group.ecs_cloudwatch_logger.name
           }
         }
       },
-
     ]
   )
 }
@@ -284,75 +289,76 @@ module "aws_cli_terra" {
 
 // ---- LAST PLAN TEST ABOVE ---
 
-// // Code pipeline stuff
-// //https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codepipeline
-//resource "aws_iam_role_policy" "codepipeline_policy" {
-//  name = "codepipeline_policy"
-//  role = aws_iam_role.codepipeline_role.id,
-//
-//{
-//  Version: "2012-10-17",
-//  "Statement": [
-//    {
-//      "Effect":"Allow",
-//      "Action": [
-//        "s3:GetObject",
-//        "s3:GetObjectVersion",
-//        "s3:GetBucketVersioning",
-//        "s3:PutObjectAcl",
-//        "s3:PutObject"
-//      ],
-//      "Resource": [
-//        "${aws_s3_bucket.codepipeline_bucket.arn}",
-//        "${aws_s3_bucket.codepipeline_bucket.arn}/*"
-//      ]
-//    },
-//    {
-//      "Effect": "Allow",
-//      "Action": [
-//        "codestar-connections:UseConnection"
-//      ],
-//      "Resource": "${aws_codestarconnections_connection.example.arn}"
-//    },
-//    {
-//      "Effect": "Allow",
-//      "Action": [
-//        "codebuild:BatchGetBuilds",
-//        "codebuild:StartBuild"
-//      ],
-//      "Resource": "*"
-//    }
-//  ]
-//}
-//EOF
-//}
-//
-//data "aws_kms_alias" "s3kmskey" {
-//  name = "alias/myKmsKey"
-//}
-//
-//resource "aws_iam_role" "test_role" {
-//  name = "test_role"
-//
-//  assume_role_policy = jsonencode({
-//    Version = "2012-10-17"
-//    Statement = [
-//      {
-//        Action = "sts:AssumeRole"
-//        Effect = "Allow"
-//        Sid    = ""
-//        Principal = {
-//          Service = "ec2.amazonaws.com"
-//        }
-//      },
-//    ]
-//  })
-//}
-//
+ // Code pipeline stuff
+
+resource "aws_iam_role" "pipeline_role" {
+  name = "pipeline_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+ //https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/codepipeline
+resource "aws_iam_role_policy" "codepipeline_policy" {
+  name = "codepipeline_policy"
+  role = aws_iam_role.pipeline_role.id
+  policy = jsonencode(
+  {
+    Version: "2012-10-17",
+    "Statement": [
+      {
+        Effect:"Allow",
+        Action: [
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:GetBucketVersioning",
+          "s3:PutObjectAcl",
+          "s3:PutObject"
+        ],
+        Resource: [
+          "aws_s3_bucket.dev-bucket.bucket",
+          "aws_s3_bucket.dev-bucket.arn/*"
+        ]
+      },
+      {
+        Effect: "Allow",
+        Action: [
+          "codestar-connections:UseConnection"
+        ],
+//        Resource: "${aws_codestarconnections_connection.example.arn}" // FIX
+        Resource: "arn:aws:codestar-connections:us-west-2:connection/aEXAMPLE-8aad-4d5d-8878-dfcab0bc441f"
+      },
+      {
+        Effect: "Allow",
+        Action: [
+          "codebuild:BatchGetBuilds",
+          "codebuild:StartBuild"
+        ],
+        Resource: "*"
+      }
+    ]
+  })
+}
+
+data "aws_kms_alias" "s3kmskey" {
+  name = "alias/myKmsKey"
+}
+
 //resource "aws_codepipeline" "codepipeline" {
 //  name = "tf-test-pipeline"
 //
-//  role_arn = aws_iam_role
+//  role_arn = aws_iam_role.pipeline_role.arn
 //
 //  artifact_store {
 //    location = aws_s3_bucket.dev-bucket.bucket
