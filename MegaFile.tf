@@ -351,9 +351,9 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
   })
 }
 
-data "aws_kms_alias" "s3kmskey" {
-  name = "alias/myKmsKey"
-}
+//data "aws_kms_alias" "s3kmskey" {
+//  name = "alias/myKmsKey"
+//}
 
 //resource "aws_codepipeline" "codepipeline" {
 //  name = "tf-test-pipeline"
