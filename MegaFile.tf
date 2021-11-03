@@ -516,6 +516,15 @@ resource "aws_codebuild_project" "codeBuilder" {
   }
 }
 
+resource "aws_ecr_repository" "ECR_Repo" {
+  name                 = "bar"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
 // ---- LAST PLAN TEST ABOVE ---
 
 
@@ -524,6 +533,8 @@ resource "aws_codebuild_project" "codeBuilder" {
 //      Attempts were made to provision the following services but could not be achieved.
 //          - CLOUDFRONT
 //          - ROUTE 53
+//          - Link between cloudwatch and S3 should be done manually (with lambda)
+//          - Currently no way to link ECR to S3 from codepipeline, this would have to be done manually
 
 // >> CLOUDFRONT <<
 
