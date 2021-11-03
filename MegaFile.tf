@@ -287,8 +287,6 @@ module "aws_cli_terra" {
   aws_cli_commands  = ["create-deployment", "delete-deployment-config", "get-deployment-config", "list-deployments", "stop-deployment"]
 }
 
-// ---- LAST PLAN TEST ABOVE ---
-
  // Code pipeline stuff
 
 resource "aws_iam_role" "pipeline_role" {
@@ -351,20 +349,73 @@ resource "aws_iam_role_policy" "codepipeline_policy" {
   })
 }
 
-//data "aws_kms_alias" "s3kmskey" {
-//  name = "alias/myKmsKey"
-//}
+// ---- LAST PLAN TEST ABOVE ---
 
-//resource "aws_codepipeline" "codepipeline" {
-//  name = "tf-test-pipeline"
-//
-//  role_arn = aws_iam_role.pipeline_role.arn
-//
-//  artifact_store {
-//    location = aws_s3_bucket.dev-bucket.bucket
-//    type = "S3"
-//  }
-//
-//}
-//
-//}
+resource "aws_codepipeline" "codepipeline" {
+  name = "tf-test-pipeline"
+
+  role_arn = aws_iam_role.pipeline_role.arn
+
+  artifact_store {
+    location = aws_s3_bucket.dev-bucket.bucket
+    type = "S3"
+  }
+
+  stage {
+    name = "Source"
+
+    action {
+      name             = "Source"
+      category         = "Source"
+      owner            = "AWS"
+      provider         = "CodeStarSourceConnection"
+      version          = "1"
+      output_artifacts = ["source_output"]
+
+      configuration = {
+        ConnectionArn    = "arn:aws:codestar-connections:us-west-2:connection/aEXAMPLE-8aad-4d5d-8878-dfcab0bc441f"
+        FullRepositoryId = "my-organization/example"
+        BranchName       = "main"
+      }
+    }
+  }
+
+  stage {
+    name = "Build"
+
+    action {
+      name             = "Build"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["source_output"]
+      output_artifacts = ["build_output"]
+      version          = "1"
+
+      configuration = {
+        ProjectName = "test"
+      }
+    }
+  }
+
+  stage {
+    name = "Deploy"
+
+    action {
+      name            = "Deploy"
+      category        = "Deploy"
+      owner           = "AWS"
+      provider        = "CloudFormation"
+      input_artifacts = ["build_output"]
+      version         = "1"
+
+      configuration = {
+        ActionMode     = "REPLACE_ON_FAILURE"
+        Capabilities   = "CAPABILITY_AUTO_EXPAND,CAPABILITY_IAM"
+        OutputFileName = "CreateStackOutput.json"
+        StackName      = "MyStack"
+        TemplatePath   = "build_output::sam-templated.yaml"
+      }
+    }
+  }
+}
